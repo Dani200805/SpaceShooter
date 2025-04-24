@@ -28,8 +28,11 @@ document.addEventListener("DOMContentLoaded", () => {
 	let animationFrameId
 	let gameImages = {}
 	let imagesLoaded = false
+
+	// TODO: Add some way to cycle these 
 	let currentBulletType = 1
 
+	// TODO: add more powerups
 	let activePowerUps = {
 		speedBoost: { active: false, duration: 0 },
 		weaponUpgrade: { active: false, duration: 0 },
@@ -65,7 +68,7 @@ document.addEventListener("DOMContentLoaded", () => {
 		{ name: "bullet2", src: "img/bullet2.png" },
 		{ name: "bullet3", src: "img/bullet3.png" },
 		{ name: "bullet4", src: "img/bullet4.png" },
-
+		// TODO: Add images
 	]
 
 	loadImages(imagesToLoad)

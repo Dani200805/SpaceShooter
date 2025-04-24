@@ -1,22 +1,26 @@
 <!DOCTYPE html>
-<html lang="hu">
+<html lang="en">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Space Shooter</title>
-  <style>
-    body {
-      margin: 0;
-      overflow: hidden;
-    }
-    canvas {
-      display: block;
-      background-color: #000;
-    }
-  </style>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Space Shooter</title>
+	<link rel="stylesheet" href="styles.css">
 </head>
+
 <body>
-  <canvas id="gameCanvas"></canvas>
-  <script src="game.js"></script>
+	<div class="game-container">
+		<div class="game-header">
+			<div class="score">Score: <span id="score">0</span></div>
+			<div class="lives">Lives: <span id="lives">3</span></div>
+		</div>
+		<canvas id="gameCanvas"></canvas>
+		<div class="game-controls">
+			<p>Controls: Arrow keys or A/D to move, Spacebar to shoot</p>
+			<button id="startButton">Start Game</button>
+		</div>
+	</div>
+	<script type="module" src="scripts/game.js"></script>
 </body>
+
 </html>

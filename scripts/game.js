@@ -535,6 +535,20 @@ document.addEventListener("DOMContentLoaded", () => {
 		}
 	}
 
+	function gameLoop() {
+		if (!gameOver && gameStarted) {
+			update()
+		}
+
+		draw()
+
+		if (!gameOver || gameStarted && !isPaused) {
+			animationFrameId = requestAnimationFrame(gameLoop)
+		} else if (isPaused) {
+			animationFrameId = null
+		}
+	}
+
 
 	if (imagesLoaded) {
 		draw()

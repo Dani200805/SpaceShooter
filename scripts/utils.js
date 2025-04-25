@@ -24,14 +24,15 @@ export function createEnemies(count, canvasWidth, enemySize, enemyImage) {
 }
 
 export function createPowerUp(canvasWidth, powerUpSize, powerUpImages) {
-	const powerUpTypes = ["extraLife", "speedBoost", "weaponUpgrade", "shield", "scoreMultiplier"]
+	const powerUpTypes = ["extraLife", "speedBoost", "weaponUpgrade", "shield", "scoreMultiplier", "fireRateUpgrade", "autoShoot"]
+	
 
 	const type = powerUpTypes[Math.floor(Math.random() * powerUpTypes.length)]
 
 	const x = getRandomInt(0, canvasWidth - powerUpSize)
 	const y = getRandomInt(-200, -50)
 
-	const speed = getRandomInt(1, 4)
+	const speed = getRandomInt(1, 3)
 
 	const image = powerUpImages ? powerUpImages[type] : null
 

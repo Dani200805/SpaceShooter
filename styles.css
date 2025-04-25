@@ -11,6 +11,10 @@ body {
     overflow: hidden;
 }
 
+#canvas-container {
+    position: relative;
+}
+
 .game-container {
     display: flex;
     flex-direction: column;

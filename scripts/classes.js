@@ -63,10 +63,11 @@ export class Player extends BaseObject {
 }
 
 export class Bullet extends BaseObject {
-    constructor(x, y, width, height, color, speed, image) {
+    constructor(x, y, width, height, color, speed, image, type) {
         super(x, y, width, height, color)
         this.speed = speed
         this.image = image
+        this.type = type
     }
 
     update() {
@@ -262,10 +263,7 @@ export class PowerUp extends BaseObject {
 
   
     applyEffect(player) {
-      
-        console.log(`Power-up of type ${this.type} collected!`)
-
-      
+        console.debug(`Power-up of type ${this.type} collected!`)
         return this.type
     }
 }

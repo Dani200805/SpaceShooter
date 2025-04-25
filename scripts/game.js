@@ -1,4 +1,4 @@
-import { Player, Bullet, Explosion } from "./classes.js"
+import { Player, Bullet, Explosion, PowerUp } from "./classes.js"
 import { createEnemies, createPowerUp, drawStars, loadImages } from "./utils.js"
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -7,16 +7,31 @@ document.addEventListener("DOMContentLoaded", () => {
 	const scoreElement = document.getElementById("score")
 	const livesElement = document.getElementById("lives")
 	const startButton = document.getElementById("startButton")
-	const gameContainer = document.querySelector(".game-container")
+	const canvasContainer = document.getElementById("canvas-container")
 	const powerUpSpawnChance = 0.005
 
 	canvas.width = 600
 	canvas.height = 800
 
+	/**
+	 * @type {Player}
+	 */
 	let player
+	/**
+	 * @type {Bullet[]}
+	 */
 	let bullets = []
+	/**
+	 * @type {Enemy[]}
+	 */
 	let enemies = []
+	/**
+	 * @type {Explosion[]}
+	 */
 	let explosions = []
+	/**
+	 * @type {PowerUp[]}
+	 */
 	let powerUps = []
 	let score = 0
 	let gameOver = false
@@ -28,29 +43,30 @@ document.addEventListener("DOMContentLoaded", () => {
 	let animationFrameId
 	let gameImages = {}
 	let imagesLoaded = false
-
-	// TODO: Add some way to cycle these 
+	let maxEnemyCount = 5
 	let currentBulletType = 1
 
-	// TODO: add more powerups
 	let activePowerUps = {
 		speedBoost: { active: false, duration: 0 },
 		weaponUpgrade: { active: false, duration: 0 },
 		shield: { active: false, duration: 0 },
-		scoreMultiplier: { active: false, duration: 0, multiplier: 1 },
+		scoreMultiplier: { active: false, duration: 0, value: 1 },
+		fireRateUpgrade : { active: false, duration: 0, value: 1 },
+		autoShoot: { active: false, duration: 0 }
 	}
+
 
 	const pauseOverlay = document.createElement("div")
 	pauseOverlay.className = "pause-overlay"
 	pauseOverlay.innerHTML =
 		"PAUSED<br><span style='font-size: 24px; margin-top: 10px;'>Press Escape to resume</span>"
 	pauseOverlay.style.display = "none"
-	gameContainer.appendChild(pauseOverlay)
+	canvasContainer.appendChild(pauseOverlay)
 
 	const loadingOverlay = document.createElement("div")
 	loadingOverlay.className = "pause-overlay"
 	loadingOverlay.innerHTML = "LOADING ASSETS..."
-	gameContainer.appendChild(loadingOverlay)
+	canvasContainer.appendChild(loadingOverlay)
 
 	const keys = {
 		ArrowLeft: false,
@@ -108,18 +124,21 @@ document.addEventListener("DOMContentLoaded", () => {
 		gameOver = false
 		isPaused = false
 		currentBulletType = 1
+		maxEnemyCount = 5
 
 		activePowerUps = {
 			speedBoost: { active: false, duration: 0 },
 			weaponUpgrade: { active: false, duration: 0 },
 			shield: { active: false, duration: 0 },
-			scoreMultiplier: { active: false, duration: 0, multiplier: 1 },
+			scoreMultiplier: { active: false, duration: 0, value: 1 },
+			fireRateUpgrade : { active: false, duration: 0, value: 1 },
+			autoShoot: { active: false, duration: 0 }
 		}
 
 		enemySpawnRate = 100
 		enemySpawnCounter = 0
 
-		enemies = enemies = createEnemies(5, canvas.width, 40, gameImages.enemy)
+		enemies = createEnemies(5, canvas.width, 40, gameImages.enemy)
 
 		scoreElement.textContent = score
 		livesElement.textContent = player.lives
@@ -171,13 +190,24 @@ document.addEventListener("DOMContentLoaded", () => {
 		}
 	})
 
-	startButton.addEventListener("click", () => {
-		if (gameOver || !gameStarted && imagesLoaded) {
+	startButton.addEventListener("click", (e) => {
+		if (imagesLoaded) {
+			if (e.pointerType !== 'mouse') return
 			gameStarted = true
 			resetGame()
 			startButton.textContent = "Restart Game"
 		}
 	})
+
+	function downGradeBullet(bullet) {
+		const type = bullet.type
+		if (type > 1) {
+			bullet.type--
+			bullet.width = 15 * (bullet.type + 2)
+			bullet.height = 30 * (bullet.type + 2)
+			bullet.image = gameImages[`bullet${bullet.type}`]
+		}
+	}
 
 	function shoot() {
 		if (!imagesLoaded) return
@@ -189,7 +219,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
 		const bulletImage = gameImages[`bullet${currentBulletType}`]
 
-		bullets.push(new Bullet(bulletX, bulletY, bulletWidth, bulletHeight, "#FFFF00", 10, bulletImage))
+		
+		bullets.push(new Bullet(bulletX, bulletY, bulletWidth, bulletHeight, "#FFFF00", 10, bulletImage, currentBulletType))
+
 	}
 
 	let shootCooldown = 0
@@ -198,10 +230,20 @@ document.addEventListener("DOMContentLoaded", () => {
 			shootCooldown--
 		}
 
-		if (keys[" "] && shootCooldown === 0) {
+		if ((keys[" "] || activePowerUps.autoShoot.active) && shootCooldown === 0) {
 			shoot()
-			shootCooldown = 15
+
+			if (activePowerUps.fireRateUpgrade.active) { shootCooldown = 7 }
+			else { shootCooldown = 15 }
 		}
+	}
+
+	function increaseBulletType() {
+		if (currentBulletType < 4) {
+			currentBulletType++
+			return false
+		}
+		return true
 	}
 
 	function applyPowerUpEffect(powerUpType) {
@@ -213,29 +255,42 @@ document.addEventListener("DOMContentLoaded", () => {
 				livesElement.textContent = player.lives
 				break
 
+			case "fireRateUpgrade":
+				activePowerUps.fireRateUpgrade.active = true
+				activePowerUps.fireRateUpgrade.duration += 750
+				break
+
+
 			case "speedBoost":
 
 				activePowerUps.speedBoost.active = true
-				activePowerUps.speedBoost.duration = 300
+				activePowerUps.speedBoost.duration += 750
 				break
 
 			case "weaponUpgrade":
 
 				activePowerUps.weaponUpgrade.active = true
-				activePowerUps.weaponUpgrade.duration = 300
+				activePowerUps.weaponUpgrade.duration += 1000
+				if (increaseBulletType()) { activePowerUps.weaponUpgrade.duration += 500 }
 				break
 
 			case "shield":
 
 				activePowerUps.shield.active = true
-				activePowerUps.shield.duration = 300
+				activePowerUps.shield.duration += 1000
 				break
 
 			case "scoreMultiplier":
 
 				activePowerUps.scoreMultiplier.active = true
-				activePowerUps.scoreMultiplier.duration = 300
-				activePowerUps.scoreMultiplier.multiplier = 2
+				activePowerUps.scoreMultiplier.duration += 300
+				activePowerUps.scoreMultiplier.value += 1
+				activePowerUps.scoreMultiplier.value = Math.min(activePowerUps.scoreMultiplier.value, 3)
+				break
+			
+			case "autoShoot":
+				activePowerUps.autoShoot.active = true
+				activePowerUps.autoShoot.duration += 500
 				break
 		}
 	}
@@ -248,10 +303,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
 				if (powerUp.duration <= 0) {
 					powerUp.active = false
-
-
-					if (type === "scoreMultiplier") {
-						powerUp.multiplier = 1
+					
+					switch (type) {
+						case "scoreMultiplier":
+							powerUp.value = 1
+							break;
+						
+						case "weaponUpgrade":
+							currentBulletType = 1
+							break;							
+					
+						default:
+							break;
 					}
 				}
 			}
@@ -301,16 +364,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
 		enemySpawnCounter++
 		if (enemySpawnCounter >= enemySpawnRate) {
-			enemies = enemies.concat(createEnemies(5 - enemies.length, canvas.width, 40, gameImages.enemy))
+			enemies = enemies.concat(createEnemies(maxEnemyCount - enemies.length, canvas.width, 40, gameImages.enemy))
 			enemySpawnCounter = 0
 
 
-			if (enemySpawnRate > 30) {
+			if (enemySpawnRate > 3) {
 				enemySpawnRate--
 			}
 		}
 
-		if (score - lastPowerUpScore >= 100 || Math.random() < powerUpSpawnChance) {
+		if (score - lastPowerUpScore >= 60 * maxEnemyCount || Math.random() < powerUpSpawnChance) {
 			powerUps.push(createPowerUp(canvas.width, 30, gameImages.powerUp))
 			lastPowerUpScore = score
 		}
@@ -318,13 +381,19 @@ document.addEventListener("DOMContentLoaded", () => {
 		bullets.forEach((bullet) => {
 			enemies.forEach((enemy) => {
 				if (bullet.collidesWith(enemy)) {
-					bullet.isActive = false
+					if (activePowerUps.weaponUpgrade.active) {
+						downGradeBullet(bullet)
+					} else {
+						bullet.isActive = false
+					}
 					enemy.isActive = false
-					const pointValue = activePowerUps.scoreMultiplier.active ? 10 * activePowerUps.scoreMultiplier.multiplier : 10
+					const pointValue = activePowerUps.scoreMultiplier.active ? 10 * activePowerUps.scoreMultiplier.value : 10
 					score += pointValue
+					if (score % 1000 === 0) {
+						maxEnemyCount++
+					}
+		
 					scoreElement.textContent = score
-
-
 					explosions.push(new Explosion(enemy.x + enemy.width / 2, enemy.y + enemy.height / 2, enemy.width))
 				}
 			})
@@ -336,8 +405,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
 					const powerUpType = powerUp.applyEffect(player)
 					applyPowerUpEffect(powerUpType)
-
-
 					powerUp.isActive = false
 				}
 			})
@@ -371,7 +438,6 @@ document.addEventListener("DOMContentLoaded", () => {
 				}
 			})
 
-
 			explosions = explosions.filter((explosion) => explosion.update())
 		}
 	}
@@ -381,7 +447,7 @@ document.addEventListener("DOMContentLoaded", () => {
 		ctx.fillStyle = "#000"
 		ctx.fillRect(0, 0, canvas.width, canvas.height)
 
-		drawStars(ctx, canvas.width, canvas.height, 100)
+		drawStars(ctx, canvas.width, canvas.height, 50)
 
 		if (player && imagesLoaded) {
 			player.draw(ctx)
@@ -469,19 +535,6 @@ document.addEventListener("DOMContentLoaded", () => {
 		}
 	}
 
-	function gameLoop() {
-		if (!gameOver && gameStarted) {
-			update()
-		}
-
-		draw()
-
-		if (!gameOver || gameStarted && !isPaused) {
-			animationFrameId = requestAnimationFrame(gameLoop)
-		} else if (isPaused) {
-			animationFrameId = null
-		}
-	}
 
 	if (imagesLoaded) {
 		draw()
